@@ -38,7 +38,7 @@ fn handler(allocator: std.mem.Allocator, context: lambda.Context, event: []const
 
 This library targets the provided lambda runtime, prefer `provided.al2023` the latest, which assumes an executable named `bootstrap`.
 
-To produce one of these, add the following in you in `build.zig``
+To produce one of these, add the following in your `build.zig` file
 
 ```zig
 const std = @import("std");
