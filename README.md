@@ -12,7 +12,26 @@
 [![Main](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml/badge.svg)](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml) ![License Info](https://img.shields.io/github/license/softprops/typeid-java)
 
 
-## 🍬 examples
+## 🍬 features
+
+* ⚡ small and fast
+
+    Zig is relatively fast and small by default and can be made faster and smaller with common `optimize` compilation flags.
+    ❄ avg cold start duration `11ms` 💾 avg memory `10MB` ⚡ avg duration `1-2ms`
+
+
+* 📦 painless and easy packaging
+
+    Zig comes with self contained build tool that makes cross compilation for aws deployment targets painless `zig build -Dtarget=aarch64-linux -Doptimize={ReleaseFast,ReleaseSmall}`
+
+Coming soon...
+
+* streaming response support
+    By default aws lambda buffers and then returns a single response to client but can be made streaming with opt in configuration
+* event struct type
+    At present it is up to lambda functions themselves to parse the and self declare event payloads structures and serialize responses. We would like to provide structs for common aws lambda event and response types to make that easier
+
+## examples
 
 Below is an example echo lambda that echo's the event that triggered it.
 
