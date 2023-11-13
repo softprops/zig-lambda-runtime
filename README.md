@@ -27,8 +27,10 @@
 Coming soon...
 
 * streaming response support
+
     By default aws lambda buffers and then returns a single response to client but can be made streaming with opt in configuration
 * event struct type
+
     At present it is up to lambda functions themselves to parse the and self declare event payloads structures and serialize responses. We would like to provide structs for common aws lambda event and response types to make that easier
 
 ## examples
