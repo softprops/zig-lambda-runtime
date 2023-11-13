@@ -11,7 +11,6 @@
 
 [![Main](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml/badge.svg)](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml) ![License Info](https://img.shields.io/github/license/softprops/typeid-java)
 
-
 ## 🍬 features
 
 * ⚡ small and fast
@@ -29,7 +28,7 @@ Coming soon...
 * streaming response support
 
     By default aws lambda buffers and then returns a single response to client but can be made streaming with opt in configuration
-* event struct type
+* event struct types
 
     At present it is up to lambda functions themselves to parse the and self declare event payloads structures and serialize responses. We would like to provide structs for common aws lambda event and response types to make that easier
 
@@ -42,9 +41,9 @@ const std = @import("std");
 const lambda = @import("lambda.zig");
 
 pub fn main() anyerror!void {
-    // ❶ wrap a free standing fn in a handler type
+    // 👇 wrap a free standing fn in a handler type
     var wrapped = lambda.wrap(handler);
-    // ❷ start the runtime with this handler
+    // 👇 start the runtime with this handler
     try lambda.run(null, wrapped.handler());
 }
 
@@ -69,6 +68,7 @@ pub fn build(b: *std.Build) void {
 
     const optimize = b.standardOptimizeOption(.{});
 
+    // 👇 create an execuable named `boostrap`. the name `bootstrap` is important.
     var exe = b.addExecutable(.{
         .name = "bootstrap",
         .root_source_file = .{ .path = "src/demo.zig" },
@@ -88,7 +88,7 @@ Package your function in zip file (aws lambda assumes a zip file) `zip -jq lambd
 
 ## 🪂 deploying
 
-The follow shows how to deploy a lambda using [aws sam cli](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
+The follow shows how to deploy a lambda using a standard aws deployment tool, [aws sam cli](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html).
 
 Create a `template.yml` sam deployment template
 
@@ -100,12 +100,16 @@ Resources:
   Function:
     Type: AWS::Serverless::Function
     Properties:
+      # 👇 use the latest provided runtime
       Runtime: provided.al2023
+      # 👇 deploy on arm architecture, it's more cost effective
       Architectures:
         - arm64
       MemorySize: 128
+      # 👇 the zip file containing your `bootstrap` binary
       CodeUri: "lambda.zip"
       FunctionName: !Sub "${AWS::StackName}"
+      # 👇 required for zips but not used by the zig runtime 
       Handler: handler
       Policies:
         - AWSLambdaBasicExecutionRole
