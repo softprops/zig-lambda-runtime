@@ -11,7 +11,9 @@ const std = @import("std");
 const lambda = @import("lambda.zig");
 
 pub fn main() anyerror!void {
+    // ❶ wrap a free standing fn in a handler type
     var wrapped = lambda.wrap(handler);
+    // ❷ start the runtime with this handler
     try lambda.run(null, wrapped.handler());
 }
 
