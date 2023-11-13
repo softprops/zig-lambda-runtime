@@ -24,7 +24,7 @@ fn handler(allocator: std.mem.Allocator, context: lambda.Context, event: []const
 }
 ```
 
-## deploying
+## 🪂 deploying
 
 This library targets the provided lambda runtime, prefer `provided.al2023` the latest, which assumes an executable named `bootstrap`.
 
