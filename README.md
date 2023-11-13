@@ -23,3 +23,56 @@ fn handler(allocator: std.mem.Allocator, context: lambda.Context, event: []const
     return event;
 }
 ```
+
+## deploying
+
+This library targets the provided lambda runtime, prefer `provided.al2023` the latest, which assumes an executable named `bootstrap`.
+
+To produce one of these, add the following in you in `build.zig``
+
+```zig
+const std = @import("std");
+
+pub fn build(b: *std.Build) void {
+    const target = b.standardTargetOptions(.{});
+
+    const optimize = b.standardOptimizeOption(.{});
+
+    //
+    var exe = b.addExecutable(.{
+        .name = "bootstrap",
+        .root_source_file = .{ .path = "src/demo.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+
+    b.installArtifact(exe);
+}
+```
+
+Then build an arm linux binary by running `zig build -Dtarget=aarch64-linux`
+
+Package your function in zip file (aws lambda assumes a zip file) `zip -jq lambda.zip zig-out/bin/bootstrap`
+
+Create a `template.yml` sam deployment template
+
+```yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: provided.al2023
+      Architectures:
+        - arm64
+      MemorySize: 128
+      CodeUri: "lambda.zip"
+      FunctionName: !Sub "${AWS::StackName}"
+      Handler: handler
+      Policies:
+        - AWSLambdaBasicExecutionRole
+```
+
+Then run `sam deploy` to deploy it
