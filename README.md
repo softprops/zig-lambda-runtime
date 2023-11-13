@@ -6,7 +6,7 @@
 </h1>
 
 <p align="center">
-  An implementation of the [aws lambda runtime](https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html) for <a href="https://ziglang.org/">zig</a>
+  An implementation of the <a href="https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html">aws lambda runtime</a> for <a href="https://ziglang.org/">zig</a>
 </p>
 
 [![Main](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml/badge.svg)](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml) ![License Info](https://img.shields.io/github/license/softprops/typeid-java)
