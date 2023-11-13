@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: provided.al2023
+    Architectures:
+      - arm64
+    MemorySize: 128
+    CodeUri: "../lambda.zip"
+
+Resources:
+  Function:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}"
+      Description: zig demo
+      Handler: handler
+      #FunctionUrlConfig:
+      #  AuthType: NONE # we authenticate requests using stripe request signature validation
+      # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  # by convention sam synthesizes a log group {FunctionLogicalId}LogGroup for you
+  # we can also explicitly define one with overrides for setting properties like retention policies
+  FunctionLogGroup:
+    Type: "AWS::Logs::LogGroup"
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Properties:
+      RetentionInDays: 30
+      LogGroupName: !Sub "/aws/lambda/${Function}"
+#Outputs:
+#  Endpoint:
+#    Value: !GetAtt FunctionUrl.FunctionUrl

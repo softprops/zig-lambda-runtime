@@ -1,0 +1,16 @@
+version = 1.0
+
+[default.deploy.parameters]
+resolve_s3 = true
+s3_prefix = "zig-demo"
+stack_name = "zig-demo"
+region = "us-east-1"
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM"
+
+[default.sync.parameters]
+resolve_s3 = true
+s3_prefix = "zig-demo"
+stack_name = "zig-demo"
+region = "us-east-1"
+code = true
