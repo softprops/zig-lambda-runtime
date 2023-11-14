@@ -2,7 +2,7 @@ const std = @import("std");
 const lambda = @import("lambda.zig");
 const log = std.log.scoped(.demo);
 
-pub fn main() anyerror!void {
+pub fn main() !void {
     var wrapped = lambda.wrap(handler);
     try lambda.run(null, wrapped.handler());
 }

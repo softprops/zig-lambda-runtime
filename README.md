@@ -38,9 +38,9 @@ Below is an example echo lambda that echo's the event that triggered it.
 
 ```zig
 const std = @import("std");
-const lambda = @import("lambda.zig");
+const lambda = @import("lambda");
 
-pub fn main() anyerror!void {
+pub fn main() !void {
     // 👇 wrap a free standing fn in a handler type
     var wrapped = lambda.wrap(handler);
     // 👇 start the runtime with this handler
