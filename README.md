@@ -56,6 +56,28 @@ fn handler(allocator: std.mem.Allocator, context: lambda.Context, event: []const
 
 ## 📼 installing
 
+Create a new exec project with `zig init-exec`
+
+Create a `build.zig.zon` file to declare a dependency
+
+> .zon short for "zig object notation" files are essential zig structs. `build.zig.zon` is zigs native package manager convention for where to declare dependencies
+
+```zig
+.{
+    .name = "my-first-zig-lambda",
+    .version = "0.1.0",
+    .dependencies = .{
+        // 👇 declare dep properties
+        .lambda = .{
+            // 👇 uri to download 
+            .url = "https://github.com/softprops/zig-lambda-runtime/archive/refs/heads/main/main.tar.gz",
+            // 👇 hash verification
+            .hash = "{current-hash}",
+        }
+    }
+}
+```
+
 ## 🔧 building
 
 This library targets the provided lambda runtime, prefer `provided.al2023` the latest, which assumes an executable named `bootstrap`.
@@ -69,22 +91,32 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     const optimize = b.standardOptimizeOption(.{});
-
-    // 👇 create an execuable named `boostrap`. the name `bootstrap` is important.
-    var exe = b.addExecutable(.{
-        .name = "bootstrap",
-        .root_source_file = .{ .path = "src/demo.zig" },
+    // 👇 de-reference lambda dep from build.zig.zon
+     const lambda = b.dependency("lambda", .{
         .target = target,
         .optimize = optimize,
     });
+    // 👇 create an execuable named `bootstrap`. the name `bootstrap` is important
+    var exe = b.addExecutable(.{
+        .name = "bootstrap",
+        .root_source_file = .{ .path = "src/main.zig" },
+        .target = target,
+        .optimize = optimize,
+    });
+    // 👇 add the lambda module to executable
+    exe.addModule("lambda", lambda.module("lambda"));
 
     b.installArtifact(exe);
 }
 ```
 
-Then build an arm linux executable by running `zig build -Dtarget=aarch64-linux`
+Then build an arm linux executable by running `zig build -Dtarget=aarch64-linux --summary all`
 
 > We're using `aarch64` because we'll be deploying to the `arm64` lambda runtime architecture below
+
+> Also consider optimizing for faster artifact with `zig build -Dtarget=aarch64-linux -Doptimize=ReleaseFast --summary all` or smaller artifact with `zig build -Dtarget=aarch64-linux -Doptimize=ReleaseSmall --summary all`. The default is a `Debug` build which trades of speed and size for faster compilation. See `zig build --help` for more info
+
+## 📦 packaging
 
 Package your function in zip file (aws lambda assumes a zip file) `zip -jq lambda.zip zig-out/bin/bootstrap`
 
@@ -115,6 +147,22 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}"
       Policies:
         - AWSLambdaBasicExecutionRole
+```
+
+Create a `samconfig.toml` to store some local sam cli defaults
+
+> this file is can be updated overtime to evolve with your infra as your infra needs evolved
+
+```toml
+version = 1.0
+
+[default.deploy.parameters]
+resolve_s3 = true
+s3_prefix = "zig-lambda-demo"
+stack_name = "zig-lambda-demo"
+region = "us-east-1"
+fail_on_empty_changeset = false
+capabilities = "CAPABILITY_IAM"
 ```
 
 Then run `sam deploy` to deploy it
