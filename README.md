@@ -13,24 +13,24 @@
 
 ## 🍬 features
 
-* ⚡ small and fast
+- ⚡ small and fast
 
-    Zig is relatively fast and small by default and can be made faster and smaller with common `optimize` compilation flags.
-    ❄ avg cold start duration `11ms` 💾 avg memory `10MB` ⚡ avg duration `1-2ms`
+  Zig is impressively fast and small by default and can be made even faster and smaller with common `optimize` compilation flags.
+  ❄ avg cold start duration `11ms` 💾 avg memory `10MB` ⚡ avg duration `1-2ms`
 
+- 📦 painless and easy packaging
 
-* 📦 painless and easy packaging
-
-    Zig comes with self contained build tool that makes cross compilation for aws deployment targets painless `zig build -Dtarget=aarch64-linux -Doptimize={ReleaseFast,ReleaseSmall}`
+  Zig comes with a self-contained build tool that makes cross compilation for aws deployment targets painless `zig build -Dtarget=aarch64-linux -Doptimize={ReleaseFast,ReleaseSmall}`
 
 Coming soon...
 
-* streaming response support
+- streaming response support
 
-    By default aws lambda buffers and then returns a single response to client but can be made streaming with opt in configuration
-* event struct types
+  By default aws lambda buffers and then returns a single response to client but can be made streaming with opt in configuration
 
-    At present it is up to lambda functions themselves to parse the and self declare event payloads structures and serialize responses. We would like to provide structs for common aws lambda event and response types to make that easier
+- event struct types
+
+  At present it is up to lambda functions themselves to parse the and self declare event payloads structures and serialize responses. We would like to provide structs for common aws lambda event and response types to make that easier
 
 ## examples
 
@@ -53,6 +53,8 @@ fn handler(allocator: std.mem.Allocator, context: lambda.Context, event: []const
     return event;
 }
 ```
+
+## 📼 installing
 
 ## 🔧 building
 
@@ -108,11 +110,22 @@ Resources:
       MemorySize: 128
       # 👇 the zip file containing your `bootstrap` binary
       CodeUri: "lambda.zip"
-      FunctionName: !Sub "${AWS::StackName}"
-      # 👇 required for zips but not used by the zig runtime 
+      # 👇 required for zip but not used by the zig runtime, put any value you like here
       Handler: handler
+      FunctionName: !Sub "${AWS::StackName}"
       Policies:
         - AWSLambdaBasicExecutionRole
 ```
 
 Then run `sam deploy` to deploy it
+
+## 🥹 for budding ziglings
+
+Does this look interesting but you're new to zig and feel left out? No problem, zig is young so most us of our new are as well. Here are some resources to help get you up to speed on zig
+
+- [the official zig website](https://ziglang.org/)
+- [zig's one-page language documentation](https://ziglang.org/documentation/0.11.0/)
+- [ziglearn](https://ziglearn.org/)
+- [ziglings exercises](https://github.com/ratfactor/ziglings)
+
+\- softprops 2023
