@@ -56,7 +56,7 @@ fn handler(allocator: std.mem.Allocator, context: lambda.Context, event: []const
 
 ## 📼 installing
 
-Create a new exec project with `zig init-exec`
+Create a new exec project with `zig init-exec`. Copy the echo handler above into `src/main.zig`
 
 Create a `build.zig.zon` file to declare a dependency
 
