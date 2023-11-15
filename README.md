@@ -56,7 +56,7 @@ fn handler(allocator: std.mem.Allocator, context: lambda.Context, event: []const
 
 ## 📼 installing
 
-Create a new exec project with `zig init-exec`. Copy the echo handler above into `src/main.zig`
+Create a new exec project with `zig init-exec`. Copy the echo handler example above into `src/main.zig`
 
 Create a `build.zig.zon` file to declare a dependency
 
@@ -69,7 +69,7 @@ Create a `build.zig.zon` file to declare a dependency
     .dependencies = .{
         // 👇 declare dep properties
         .lambda = .{
-            // 👇 uri to download 
+            // 👇 uri to download
             .url = "https://github.com/softprops/zig-lambda-runtime/archive/refs/heads/main/main.tar.gz",
             // 👇 hash verification
             .hash = "{current-hash}",
