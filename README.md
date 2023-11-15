@@ -1,6 +1,3 @@
-<div align="center">
-  ⚡ 🦎
-</div>
 <h1 align="center">
   zig lambda runtime
 </h1>
@@ -9,7 +6,11 @@
   An implementation of the <a href="https://docs.aws.amazon.com/lambda/latest/dg/runtimes-api.html">aws lambda runtime</a> for <a href="https://ziglang.org/">zig</a>
 </p>
 
-[![Main](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml/badge.svg)](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml) ![License Info](https://img.shields.io/github/license/softprops/typeid-java)
+<div align="center">
+  ⚡ 🦎
+</div>
+
+[![Main](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml/badge.svg)](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml) ![License Info](https://img.shields.io/github/license/softprops/zig-lambda-runtime) ![Release](https://img.shields.io/github/v/release/softprops/zig-lambda-runtime)
 
 ## 🍬 features
 
@@ -70,13 +71,15 @@ Create a `build.zig.zon` file to declare a dependency
         // 👇 declare dep properties
         .lambda = .{
             // 👇 uri to download
-            .url = "https://github.com/softprops/zig-lambda-runtime/archive/refs/heads/main/main.tar.gz",
+            .url = "https://github.com/softprops/zig-lambda-runtime/archive/refs/tags/v0.1.0.tar.gz",
             // 👇 hash verification
-            .hash = "{current-hash}",
+            .hash = "122084e15b7b04f9023ac9dac6f0a1f341dbf8282aa14f51ff553881be73b624361b",
         }
     }
 }
 ```
+
+> the hash below may vary. you can also depend any tag with `https://github.com/softprops/zig-lambda-runtime/archive/refs/tags/v{version}.tar.gz` or current main with `https://github.com/softprops/zig-lambda-runtime/archive/refs/heads/main/main.tar.gz`. to resolve a hash omit it and let zig tell you the expected value.
 
 ## 🔧 building
 
