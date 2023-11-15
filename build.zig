@@ -25,20 +25,6 @@ pub fn build(b: *std.Build) !void {
     // using the package manager.
     try b.modules.put(b.dupe("lambda"), lambda_module);
 
-    // const lib = b.addStaticLibrary(.{
-    //     .name = "lambda",
-    //     // In this case the main source file is merely a path, however, in more
-    //     // complicated build scripts, this could be a generated file.
-    //     .root_source_file = .{ .path = "src/lambda.zig" },
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
-
-    // This declares intent for the library to be installed into the standard
-    // location when the user invokes the "install" step (the default step when
-    // running `zig build`).
-    //b.installArtifact(lib);
-
     // Creates a step for unit testing. This only builds the test executable
     // but does not run it.
     const main_tests = b.addTest(.{
@@ -55,12 +41,34 @@ pub fn build(b: *std.Build) !void {
     const test_step = b.step("test", "Run library tests");
     test_step.dependOn(&run_main_tests.step);
 
-    var exe = b.addExecutable(.{
-        .name = "bootstrap",
-        .root_source_file = .{ .path = "src/demo.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
+    // examples (pattern inspired by zap's build.zig)
+    inline for ([_]struct {
+        name: []const u8,
+        src: []const u8,
+    }{
+        .{ .name = "echo", .src = "examples/echo/main.zig" },
+    }) |example| {
+        const example_step = b.step(try std.fmt.allocPrint(
+            b.allocator,
+            "{s}-example",
+            .{example.name},
+        ), try std.fmt.allocPrint(
+            b.allocator,
+            "build the {s} example",
+            .{example.name},
+        ));
 
-    b.installArtifact(exe);
+        var exe = b.addExecutable(.{
+            .name = "bootstrap",
+            .root_source_file = .{ .path = example.src },
+            .target = target,
+            .optimize = optimize,
+        });
+
+        exe.addModule("lambda", lambda_module);
+
+        // install the artifact - depending on the example exe
+        const example_build_step = b.addInstallArtifact(exe, .{});
+        example_step.dependOn(&example_build_step.step);
+    }
 }

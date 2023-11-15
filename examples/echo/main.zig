@@ -1,5 +1,5 @@
 const std = @import("std");
-const lambda = @import("lambda.zig");
+const lambda = @import("lambda");
 const log = std.log.scoped(.demo);
 
 pub fn main() !void {
