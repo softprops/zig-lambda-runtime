@@ -47,6 +47,7 @@ pub fn build(b: *std.Build) !void {
         src: []const u8,
     }{
         .{ .name = "echo", .src = "examples/echo/main.zig" },
+        .{ .name = "apigw", .src = "examples/apigw/main.zig" },
     }) |example| {
         const example_step = b.step(try std.fmt.allocPrint(
             b.allocator,

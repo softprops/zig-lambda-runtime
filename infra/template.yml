@@ -16,8 +16,8 @@ Resources:
       FunctionName: !Sub "${AWS::StackName}"
       Description: zig demo
       Handler: handler
-      #FunctionUrlConfig:
-      #  AuthType: NONE # we authenticate requests using stripe request signature validation
+      FunctionUrlConfig:
+        AuthType: NONE
       # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-template-list.html
       Policies:
         - AWSLambdaBasicExecutionRole

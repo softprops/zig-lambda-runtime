@@ -14,7 +14,7 @@ fmt:
 
 # build and package demo lambda for deployment
 package:
-    @zig build echo-example -Dtarget=aarch64-linux --summary all
+    @zig build apigw-example -Dtarget=aarch64-linux --summary all
     @zip -jq lambda.zip zig-out/bin/bootstrap
 
 # deploy demo lambda
