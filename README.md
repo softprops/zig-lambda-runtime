@@ -10,7 +10,7 @@
   ⚡ 🦎
 </div>
 
-[![Main](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml/badge.svg)](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml) ![License Info](https://img.shields.io/github/license/softprops/zig-lambda-runtime) ![Release](https://img.shields.io/github/v/release/softprops/zig-lambda-runtime)
+[![Main](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml/badge.svg)](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml) ![License Info](https://img.shields.io/github/license/softprops/zig-lambda-runtime) ![Release](https://img.shields.io/github/v/release/softprops/zig-lambda-runtime) [![Zig Support](https://img.shields.io/badge/zig-0.11.0-black?logo=zig)](https://ziglang.org/documentation/0.11.0/)
 
 ## 🍬 features
 
