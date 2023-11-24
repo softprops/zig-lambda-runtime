@@ -61,7 +61,7 @@ Create a new exec project with `zig init-exe`. Copy the echo handler example abo
 
 Create a `build.zig.zon` file to declare a dependency
 
-> .zon short for "zig object notation" files are essential zig structs. `build.zig.zon` is zigs native package manager convention for where to declare dependencies
+> .zon short for "zig object notation" files are essentially zig structs. `build.zig.zon` is zigs native package manager convention for where to declare dependencies
 
 ```zig
 .{
@@ -74,8 +74,8 @@ Create a `build.zig.zon` file to declare a dependency
             .url = "https://github.com/softprops/zig-lambda-runtime/archive/refs/tags/v0.1.0.tar.gz",
             // 👇 hash verification
             .hash = "122084e15b7b04f9023ac9dac6f0a1f341dbf8282aa14f51ff553881be73b624361b",
-        }
-    }
+        },
+    },
 }
 ```
 
