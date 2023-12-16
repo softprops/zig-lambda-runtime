@@ -101,7 +101,7 @@ pub fn run(allocator: ?std.mem.Allocator, handler: anytype) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const alloc = allocator orelse gpa.allocator();
-    var env = (try Env.fromOs()).?;
+    const env = (try Env.fromOs()).?;
     var runtime = try Runtime.init(alloc, env, .{ .allocator = alloc });
     defer runtime.deinit();
     var events = try runtime.events();
@@ -227,18 +227,18 @@ const EventIterator = struct {
         try req.wait();
         var hdrs = req.response.headers;
         log.debug("recieved next event {any}", .{hdrs});
-        var request_id = hdrs.getFirstValue("Lambda-Runtime-Aws-Request-Id").?;
-        var deadline_ms = try std.fmt.parseInt(u64, hdrs.getFirstValue("Lambda-Runtime-Deadline-Ms").?, 10);
-        var invoked_function_arn = hdrs.getFirstValue("Lambda-Runtime-Invoked-Function-Arn").?;
-        var trace_id = hdrs.getFirstValue("Lambda-Runtime-Trace-Id").?;
+        const request_id = hdrs.getFirstValue("Lambda-Runtime-Aws-Request-Id").?;
+        const deadline_ms = try std.fmt.parseInt(u64, hdrs.getFirstValue("Lambda-Runtime-Deadline-Ms").?, 10);
+        const invoked_function_arn = hdrs.getFirstValue("Lambda-Runtime-Invoked-Function-Arn").?;
+        const trace_id = hdrs.getFirstValue("Lambda-Runtime-Trace-Id").?;
         // _ = hdrs.getFirstValue("Lambda-Runtime-Client-Context");
         // _ = hdrs.getFirstValue("Lambda-Runtime-Cognito-Identity");
-        var content_length = @as(usize, @intCast(req.response.content_length.?));
+        const content_length = @as(usize, @intCast(req.response.content_length.?));
         var payload = try std.ArrayList(u8).initCapacity(self.allocator, content_length);
         defer payload.deinit();
         try payload.resize(content_length);
         // make a copy of the response data that we own
-        var data = try payload.toOwnedSlice();
+        const data = try payload.toOwnedSlice();
         errdefer self.allocator.free(data);
         _ = try req.readAll(data);
         log.debug("constructing event with data {s} and request id {s}", .{ data, request_id });
