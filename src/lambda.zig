@@ -43,11 +43,15 @@ pub const Context = struct {
 pub fn Handler(
     comptime Ctx: type,
     comptime handleFn: fn (context: anytype, std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8,
+    comptime cleanupFn: fn (context: anytype, std.mem.Allocator, ctx: Context, data: []const u8) anyerror!void,
 ) type {
     return struct {
         context: Ctx,
         pub fn handle(self: *@This(), allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
             return handleFn(self.context, allocator, ctx, event);
+        }
+        pub fn cleanup(self: *@This(), allocator: std.mem.Allocator, ctx: Context, data: []const u8) anyerror!void {
+            return cleanupFn(self.context, allocator, ctx, data);
         }
     };
 }
@@ -64,7 +68,7 @@ pub fn Wrap() type {
     return struct {
         f: *const fn (std.mem.Allocator, Context, []const u8) anyerror![]const u8,
         const Self = @This();
-        pub const Wrapped = Handler(*Self, handle);
+        pub const Wrapped = Handler(*Self, handle, cleanup);
         pub fn handler(self: *Self) Wrapped {
             return .{ .context = self };
         }
@@ -72,6 +76,8 @@ pub fn Wrap() type {
         pub fn handle(self: anytype, allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
             return self.f(allocator, ctx, event);
         }
+
+        pub fn cleanup(_: anytype, _: std.mem.Allocator, _: Context, _: []const u8) anyerror!void {}
     };
 }
 
@@ -122,6 +128,7 @@ pub fn run(allocator: ?std.mem.Allocator, handler: anytype) !void {
             log.err("failed to send response {s}", .{@errorName(err)});
             continue;
         };
+        try hand.cleanup(runtime.allocator, e.context(), response);
     }
 }
 
@@ -377,7 +384,7 @@ test "wrapped handler" {
 test "custom handler" {
     const Echo = struct {
         const Self = @This();
-        const EchoHandler = Handler(*Self, handle);
+        const EchoHandler = Handler(*Self, handle, cleanup);
         pub fn handler(self: *Self) EchoHandler {
             return .{ .context = self };
         }
@@ -387,6 +394,7 @@ test "custom handler" {
             _ = ctx;
             return event;
         }
+        pub fn cleanup(_: anytype, _: std.mem.Allocator, _: Context, _: []const u8) anyerror!void {}
     };
     const allocator = std.testing.allocator;
     var custom = Echo{};
