@@ -17,7 +17,7 @@ pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
 
     // create a module to be used internally.
-    var lambda_module = b.createModule(.{
+    const lambda_module = b.createModule(.{
         .source_file = .{ .path = "src/lambda.zig" },
     });
 

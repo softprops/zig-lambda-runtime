@@ -42,12 +42,16 @@ pub const Context = struct {
 /// Currently accepting an allocator, request context, and bytes associated with event and error union with bytes returned in response
 pub fn Handler(
     comptime Ctx: type,
-    comptime handleFn: fn (context: Ctx, std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8,
+    comptime handleFn: fn (context: anytype, std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8,
+    comptime cleanupFn: fn (context: anytype, std.mem.Allocator, ctx: Context, data: []const u8) anyerror!void,
 ) type {
     return struct {
         context: Ctx,
         pub fn handle(self: *@This(), allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
             return handleFn(self.context, allocator, ctx, event);
+        }
+        pub fn cleanup(self: *@This(), allocator: std.mem.Allocator, ctx: Context, data: []const u8) anyerror!void {
+            return cleanupFn(self.context, allocator, ctx, data);
         }
     };
 }
@@ -64,14 +68,16 @@ pub fn Wrap() type {
     return struct {
         f: *const fn (std.mem.Allocator, Context, []const u8) anyerror![]const u8,
         const Self = @This();
-        pub const Wrapped = Handler(*Self, handle);
+        pub const Wrapped = Handler(*Self, handle, cleanup);
         pub fn handler(self: *Self) Wrapped {
             return .{ .context = self };
         }
 
-        pub fn handle(self: *Self, allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
+        pub fn handle(self: anytype, allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
             return self.f(allocator, ctx, event);
         }
+
+        pub fn cleanup(_: anytype, _: std.mem.Allocator, _: Context, _: []const u8) anyerror!void {}
     };
 }
 
@@ -101,7 +107,7 @@ pub fn run(allocator: ?std.mem.Allocator, handler: anytype) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const alloc = allocator orelse gpa.allocator();
-    var env = (try Env.fromOs()).?;
+    const env = (try Env.fromOs()).?;
     var runtime = try Runtime.init(alloc, env, .{ .allocator = alloc });
     defer runtime.deinit();
     var events = try runtime.events();
@@ -122,6 +128,7 @@ pub fn run(allocator: ?std.mem.Allocator, handler: anytype) !void {
             log.err("failed to send response {s}", .{@errorName(err)});
             continue;
         };
+        try hand.cleanup(runtime.allocator, e.context(), response);
     }
 }
 
@@ -217,30 +224,24 @@ const EventIterator = struct {
         log.debug("requesting next event", .{});
         var headers = std.http.Headers.init(self.allocator);
         defer headers.deinit();
-        var req = try self.client.request(.GET, self.next_uri.uri, headers, .{});
+        var res = try self.client.fetch(self.allocator, .{
+            .location = .{ .uri = self.next_uri.uri },
+            .method = .GET,
+            .headers = headers,
+        });
         defer {
             log.debug("next request deinit", .{});
-            req.deinit();
+            res.deinit();
         }
-        try req.start();
-        try req.finish();
-        try req.wait();
-        var hdrs = req.response.headers;
+        var hdrs = res.headers;
         log.debug("recieved next event {any}", .{hdrs});
-        var request_id = hdrs.getFirstValue("Lambda-Runtime-Aws-Request-Id").?;
-        var deadline_ms = try std.fmt.parseInt(u64, hdrs.getFirstValue("Lambda-Runtime-Deadline-Ms").?, 10);
-        var invoked_function_arn = hdrs.getFirstValue("Lambda-Runtime-Invoked-Function-Arn").?;
-        var trace_id = hdrs.getFirstValue("Lambda-Runtime-Trace-Id").?;
+        const request_id = hdrs.getFirstValue("Lambda-Runtime-Aws-Request-Id").?;
+        const deadline_ms = try std.fmt.parseInt(u64, hdrs.getFirstValue("Lambda-Runtime-Deadline-Ms").?, 10);
+        const invoked_function_arn = hdrs.getFirstValue("Lambda-Runtime-Invoked-Function-Arn").?;
+        const trace_id = hdrs.getFirstValue("Lambda-Runtime-Trace-Id").?;
         // _ = hdrs.getFirstValue("Lambda-Runtime-Client-Context");
         // _ = hdrs.getFirstValue("Lambda-Runtime-Cognito-Identity");
-        var content_length = @as(usize, @intCast(req.response.content_length.?));
-        var payload = try std.ArrayList(u8).initCapacity(self.allocator, content_length);
-        defer payload.deinit();
-        try payload.resize(content_length);
-        // make a copy of the response data that we own
-        var data = try payload.toOwnedSlice();
-        errdefer self.allocator.free(data);
-        _ = try req.readAll(data);
+        const data: []const u8 = if (res.body) |body| try self.allocator.dupe(u8, body) else &.{};
         log.debug("constructing event with data {s} and request id {s}", .{ data, request_id });
         return .{ .allocator = self.allocator, .data = data, .request_id = try self.allocator.dupe(u8, request_id), .deadline_ms = deadline_ms, .invoked_function_arn = try self.allocator.dupe(u8, invoked_function_arn), .trace_id = try self.allocator.dupe(u8, trace_id), .client = self.client, .uri = self.uri };
     }
@@ -291,13 +292,13 @@ const Event = struct {
         // fixme. self.client segfaults on every other success. we really shouldn't need a new client on every response
         var client = std.http.Client{ .allocator = self.allocator };
         defer client.deinit();
-        var req = try client.request(.POST, uri, headers, .{});
+        var req = try self.client.fetch(self.allocator, .{
+            .location = .{ .uri = uri },
+            .method = .POST,
+            .headers = headers,
+            .payload = .{ .string = body },
+        });
         defer req.deinit();
-        req.transfer_encoding = .{ .content_length = body.len };
-        try req.start();
-        try req.writeAll(body);
-        try req.finish();
-        try req.wait();
         log.debug("response complete", .{});
     }
 
@@ -328,13 +329,13 @@ const Event = struct {
             , .{@errorName(caught)});
         defer self.allocator.free(body);
         log.debug("sending error report", .{});
-        var req = try self.client.request(.POST, uri, headers, .{});
+        var req = try self.client.fetch(self.allocator, .{
+            .location = .{ .uri = uri },
+            .method = .POST,
+            .headers = headers,
+            .payload = .{ .string = body },
+        });
         defer req.deinit();
-        req.transfer_encoding = .{ .content_length = body.len };
-        try req.start();
-        try req.writeAll(body);
-        try req.finish();
-        try req.wait();
         log.debug("error report complete", .{});
     }
 };
@@ -383,16 +384,17 @@ test "wrapped handler" {
 test "custom handler" {
     const Echo = struct {
         const Self = @This();
-        const EchoHandler = Handler(*Self, handle);
+        const EchoHandler = Handler(*Self, handle, cleanup);
         pub fn handler(self: *Self) EchoHandler {
             return .{ .context = self };
         }
-        pub fn handle(self: *Self, allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
+        pub fn handle(self: anytype, allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
             _ = self;
             _ = allocator;
             _ = ctx;
             return event;
         }
+        pub fn cleanup(_: anytype, _: std.mem.Allocator, _: Context, _: []const u8) anyerror!void {}
     };
     const allocator = std.testing.allocator;
     var custom = Echo{};
