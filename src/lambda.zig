@@ -217,15 +217,16 @@ const EventIterator = struct {
         log.debug("requesting next event", .{});
         var headers = std.http.Headers.init(self.allocator);
         defer headers.deinit();
-        var req = try self.client.request(.GET, self.next_uri.uri, headers, .{});
+        var res = try self.client.fetch(self.allocator, .{
+            .location = .{ .uri = self.next_uri.uri },
+            .method = .GET,
+            .headers = headers,
+        });
         defer {
             log.debug("next request deinit", .{});
-            req.deinit();
+            res.deinit();
         }
-        try req.start();
-        try req.finish();
-        try req.wait();
-        var hdrs = req.response.headers;
+        var hdrs = res.headers;
         log.debug("recieved next event {any}", .{hdrs});
         const request_id = hdrs.getFirstValue("Lambda-Runtime-Aws-Request-Id").?;
         const deadline_ms = try std.fmt.parseInt(u64, hdrs.getFirstValue("Lambda-Runtime-Deadline-Ms").?, 10);
@@ -233,14 +234,7 @@ const EventIterator = struct {
         const trace_id = hdrs.getFirstValue("Lambda-Runtime-Trace-Id").?;
         // _ = hdrs.getFirstValue("Lambda-Runtime-Client-Context");
         // _ = hdrs.getFirstValue("Lambda-Runtime-Cognito-Identity");
-        const content_length = @as(usize, @intCast(req.response.content_length.?));
-        var payload = try std.ArrayList(u8).initCapacity(self.allocator, content_length);
-        defer payload.deinit();
-        try payload.resize(content_length);
-        // make a copy of the response data that we own
-        const data = try payload.toOwnedSlice();
-        errdefer self.allocator.free(data);
-        _ = try req.readAll(data);
+        const data: []const u8 = if (res.body) |body| try self.allocator.dupe(u8, body) else &.{};
         log.debug("constructing event with data {s} and request id {s}", .{ data, request_id });
         return .{ .allocator = self.allocator, .data = data, .request_id = try self.allocator.dupe(u8, request_id), .deadline_ms = deadline_ms, .invoked_function_arn = try self.allocator.dupe(u8, invoked_function_arn), .trace_id = try self.allocator.dupe(u8, trace_id), .client = self.client, .uri = self.uri };
     }
@@ -291,13 +285,13 @@ const Event = struct {
         // fixme. self.client segfaults on every other success. we really shouldn't need a new client on every response
         var client = std.http.Client{ .allocator = self.allocator };
         defer client.deinit();
-        var req = try client.request(.POST, uri, headers, .{});
+        var req = try self.client.fetch(self.allocator, .{
+            .location = .{ .uri = uri },
+            .method = .POST,
+            .headers = headers,
+            .payload = .{ .string = body },
+        });
         defer req.deinit();
-        req.transfer_encoding = .{ .content_length = body.len };
-        try req.start();
-        try req.writeAll(body);
-        try req.finish();
-        try req.wait();
         log.debug("response complete", .{});
     }
 
@@ -328,13 +322,13 @@ const Event = struct {
             , .{@errorName(caught)});
         defer self.allocator.free(body);
         log.debug("sending error report", .{});
-        var req = try self.client.request(.POST, uri, headers, .{});
+        var req = try self.client.fetch(self.allocator, .{
+            .location = .{ .uri = uri },
+            .method = .POST,
+            .headers = headers,
+            .payload = .{ .string = body },
+        });
         defer req.deinit();
-        req.transfer_encoding = .{ .content_length = body.len };
-        try req.start();
-        try req.writeAll(body);
-        try req.finish();
-        try req.wait();
         log.debug("error report complete", .{});
     }
 };
