@@ -42,7 +42,7 @@ pub const Context = struct {
 /// Currently accepting an allocator, request context, and bytes associated with event and error union with bytes returned in response
 pub fn Handler(
     comptime Ctx: type,
-    comptime handleFn: fn (context: Ctx, std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8,
+    comptime handleFn: fn (context: anytype, std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8,
 ) type {
     return struct {
         context: Ctx,
@@ -69,7 +69,7 @@ pub fn Wrap() type {
             return .{ .context = self };
         }
 
-        pub fn handle(self: *Self, allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
+        pub fn handle(self: anytype, allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
             return self.f(allocator, ctx, event);
         }
     };
@@ -387,7 +387,7 @@ test "custom handler" {
         pub fn handler(self: *Self) EchoHandler {
             return .{ .context = self };
         }
-        pub fn handle(self: *Self, allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
+        pub fn handle(self: anytype, allocator: std.mem.Allocator, ctx: Context, event: []const u8) anyerror![]const u8 {
             _ = self;
             _ = allocator;
             _ = ctx;
