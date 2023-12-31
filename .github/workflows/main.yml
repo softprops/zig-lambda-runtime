@@ -1,7 +1,8 @@
 name: Main
 
 on:
-  push:
+  - push
+  - pull_request
 
 jobs:
   test:
