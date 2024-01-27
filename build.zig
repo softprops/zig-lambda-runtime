@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
 
     // create a module to be used internally.
     const lambda_module = b.createModule(.{
-        .source_file = .{ .path = "src/lambda.zig" },
+        .root_source_file = .{ .path = "src/lambda.zig" },
     });
 
     // register the module so it can be referenced
@@ -66,7 +66,7 @@ pub fn build(b: *std.Build) !void {
             .optimize = optimize,
         });
 
-        exe.addModule("lambda", lambda_module);
+        exe.root_module.addImport("lambda", lambda_module);
 
         // install the artifact - depending on the example exe
         const example_build_step = b.addInstallArtifact(exe, .{});
