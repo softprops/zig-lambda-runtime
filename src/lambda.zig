@@ -238,7 +238,7 @@ const EventIterator = struct {
         defer payload.deinit();
         try payload.resize(content_length);
         // make a copy of the response data that we own
-        var data = try payload.toOwnedSlice();
+        const data = try payload.toOwnedSlice();
         errdefer self.allocator.free(data);
         _ = try req.readAll(data);
         log.debug("constructing event with data {s} and request id {s}", .{ data, request_id });

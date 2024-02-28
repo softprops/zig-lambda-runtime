@@ -17,7 +17,8 @@ pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
 
     // create a module to be used internally.
-    var lambda_module = b.createModule(.{
+    const lambda_module = b.createModule(.{
+        // fixme(0.12): .source_file -> root_source_file
         .source_file = .{ .path = "src/lambda.zig" },
     });
 
@@ -66,6 +67,7 @@ pub fn build(b: *std.Build) !void {
             .optimize = optimize,
         });
 
+        // fixme(0.12): addModule -> root_module.addImport(name, mod)
         exe.addModule("lambda", lambda_module);
 
         // install the artifact - depending on the example exe
