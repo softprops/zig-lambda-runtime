@@ -146,6 +146,7 @@ Resources:
         - arm64
       MemorySize: 128
       # 👇 the zip file containing your `bootstrap` binary
+      #    example: zip -jq lambda.zip zig-out/bin/bootstrap
       CodeUri: "lambda.zip"
       # 👇 required for zip but not used by the zig runtime, put any value you like here
       Handler: handler
