@@ -10,7 +10,7 @@
   ⚡ 🦎
 </div>
 
-[![Main](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml/badge.svg)](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml) ![License Info](https://img.shields.io/github/license/softprops/zig-lambda-runtime) ![Release](https://img.shields.io/github/v/release/softprops/zig-lambda-runtime) [![Zig Support](https://img.shields.io/badge/zig-0.11.0-black?logo=zig)](https://ziglang.org/documentation/0.11.0/)
+[![Main](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml/badge.svg)](https://github.com/softprops/zig-lambda-runtime/actions/workflows/main.yml) ![License Info](https://img.shields.io/github/license/softprops/zig-lambda-runtime) ![Release](https://img.shields.io/github/v/release/softprops/zig-lambda-runtime) [![Zig Support](https://img.shields.io/badge/zig-0.12.0-black?logo=zig)](https://ziglang.org/documentation/0.12.0/)
 
 ## 🍬 features
 
@@ -68,14 +68,15 @@ Create a `build.zig.zon` file to declare a dependency
     .name = "my-first-zig-lambda",
     .version = "0.1.0",
     .dependencies = .{
-        // 👇 declare dep properties
-        .lambda = .{
-            // 👇 uri to download
-            .url = "https://github.com/softprops/zig-lambda-runtime/archive/refs/tags/v0.1.0.tar.gz",
-            // 👇 hash verification
-            .hash = "122084e15b7b04f9023ac9dac6f0a1f341dbf8282aa14f51ff553881be73b624361b",
-        },
++        // 👇 declare dep properties
++        .lambda = .{
++            // 👇 uri to download
++            .url = "https://github.com/softprops/zig-lambda-runtime/archive/refs/tags/v0.2.0.tar.gz",
++            // 👇 hash verification
++            .hash = "{current-hash}",
++        },
     },
+    .paths = .{""},
 }
 ```
 
@@ -94,11 +95,11 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     const optimize = b.standardOptimizeOption(.{});
-    // 👇 de-reference lambda dep from build.zig.zon
-     const lambda = b.dependency("lambda", .{
-        .target = target,
-        .optimize = optimize,
-    });
+ +   // 👇 de-reference lambda dep from build.zig.zon
+ +    const lambda = b.dependency("lambda", .{
+ +       .target = target,
+ +       .optimize = optimize,
+ +   }).module("lambda");
     // 👇 create an execuable named `bootstrap`. the name `bootstrap` is important
     var exe = b.addExecutable(.{
         .name = "bootstrap",
@@ -106,8 +107,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    // 👇 add the lambda module to executable
-    exe.addModule("lambda", lambda.module("lambda"));
+ +   // 👇 add the lambda module to executable
+ +   exe.addModule("lambda", lambda);
 
     b.installArtifact(exe);
 }

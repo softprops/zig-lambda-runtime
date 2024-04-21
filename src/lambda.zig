@@ -139,7 +139,11 @@ const Env = struct {
 
     /// Resolve runtime env from os
     pub fn fromOs() !?Env {
-        return .{ .runtime_api = std.os.getenv("AWS_LAMBDA_RUNTIME_API").?, .function_name = std.os.getenv("AWS_LAMBDA_FUNCTION_NAME").?, .function_memory_size = try std.fmt.parseInt(i32, std.os.getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE").?, 10) };
+        return .{
+            .runtime_api = std.posix.getenv("AWS_LAMBDA_RUNTIME_API").?,
+            .function_name = std.posix.getenv("AWS_LAMBDA_FUNCTION_NAME").?,
+            .function_memory_size = try std.fmt.parseInt(i32, std.posix.getenv("AWS_LAMBDA_FUNCTION_MEMORY_SIZE").?, 10),
+        };
     }
 };
 
@@ -181,7 +185,6 @@ const Runtime = struct {
     }
 
     fn deinit(self: *Self) void {
-        log.warn("inside deiniting runtime...", .{});
         self.allocator.free(self.uri);
         self.client.deinit();
         self.* = undefined;
@@ -215,24 +218,40 @@ const EventIterator = struct {
 
     fn next(self: *Self) !?Event {
         log.debug("requesting next event", .{});
-        var headers = std.http.Headers.init(self.allocator);
-        defer headers.deinit();
-        var req = try self.client.request(.GET, self.next_uri.uri, headers, .{});
+        // same as std client.fetch(...) default server_header_buffer
+        var server_header_buffer: [16 * 1024]u8 = undefined;
+        var req = try self.client.open(.GET, self.next_uri.uri, .{
+            .server_header_buffer = &server_header_buffer,
+        });
         defer {
             log.debug("next request deinit", .{});
             req.deinit();
         }
-        try req.start();
+        try req.send();
         try req.finish();
         try req.wait();
-        var hdrs = req.response.headers;
-        log.debug("recieved next event {any}", .{hdrs});
-        const request_id = hdrs.getFirstValue("Lambda-Runtime-Aws-Request-Id").?;
-        const deadline_ms = try std.fmt.parseInt(u64, hdrs.getFirstValue("Lambda-Runtime-Deadline-Ms").?, 10);
-        const invoked_function_arn = hdrs.getFirstValue("Lambda-Runtime-Invoked-Function-Arn").?;
-        const trace_id = hdrs.getFirstValue("Lambda-Runtime-Trace-Id").?;
-        // _ = hdrs.getFirstValue("Lambda-Runtime-Client-Context");
-        // _ = hdrs.getFirstValue("Lambda-Runtime-Cognito-Identity");
+        log.debug("recieved next event", .{});
+
+        var headers = req.response.iterateHeaders();
+        var request_id: []const u8 = undefined;
+        var invoked_function_arn: []const u8 = undefined;
+        var deadline_ms: u64 = undefined;
+        var trace_id: []const u8 = undefined;
+        while (headers.next()) |hdr| {
+            if (std.ascii.eqlIgnoreCase("Lambda-Runtime-Aws-Request-Id", hdr.name)) {
+                request_id = hdr.value;
+            }
+            if (std.ascii.eqlIgnoreCase("Lambda-Runtime-Deadline-Ms", hdr.name)) {
+                deadline_ms = try std.fmt.parseInt(u64, hdr.value, 10);
+            }
+            if (std.ascii.eqlIgnoreCase("Lambda-Runtime-Invoked-Function-Arn", hdr.name)) {
+                invoked_function_arn = hdr.value;
+            }
+            if (std.ascii.eqlIgnoreCase("Lambda-Runtime-Trace-Id", hdr.name)) {
+                trace_id = hdr.value;
+            }
+        }
+
         const content_length = @as(usize, @intCast(req.response.content_length.?));
         var payload = try std.ArrayList(u8).initCapacity(self.allocator, content_length);
         defer payload.deinit();
@@ -242,7 +261,16 @@ const EventIterator = struct {
         errdefer self.allocator.free(data);
         _ = try req.readAll(data);
         log.debug("constructing event with data {s} and request id {s}", .{ data, request_id });
-        return .{ .allocator = self.allocator, .data = data, .request_id = try self.allocator.dupe(u8, request_id), .deadline_ms = deadline_ms, .invoked_function_arn = try self.allocator.dupe(u8, invoked_function_arn), .trace_id = try self.allocator.dupe(u8, trace_id), .client = self.client, .uri = self.uri };
+        return .{
+            .allocator = self.allocator,
+            .data = data,
+            .request_id = try self.allocator.dupe(u8, request_id),
+            .deadline_ms = deadline_ms,
+            .invoked_function_arn = try self.allocator.dupe(u8, invoked_function_arn),
+            .trace_id = try self.allocator.dupe(u8, trace_id),
+            .client = self.client,
+            .uri = self.uri,
+        };
     }
 };
 
@@ -279,8 +307,6 @@ const Event = struct {
         const url = try std.fmt.allocPrint(self.allocator, "{s}/invocation/{s}/response", .{ self.uri, self.request_id });
         defer self.allocator.free(url);
         const uri = try std.Uri.parse(url);
-        var headers = std.http.Headers.init(self.allocator);
-        defer headers.deinit();
         const body = try std.fmt.allocPrint(
             self.allocator,
             "{s}",
@@ -291,10 +317,14 @@ const Event = struct {
         // fixme. self.client segfaults on every other success. we really shouldn't need a new client on every response
         var client = std.http.Client{ .allocator = self.allocator };
         defer client.deinit();
-        var req = try client.request(.POST, uri, headers, .{});
+        // same as std client.fetch(...) default server_header_buffer
+        var server_header_buffer: [16 * 1024]u8 = undefined;
+        var req = try client.open(.POST, uri, .{
+            .server_header_buffer = &server_header_buffer,
+        });
         defer req.deinit();
         req.transfer_encoding = .{ .content_length = body.len };
-        try req.start();
+        try req.send();
         try req.writeAll(body);
         try req.finish();
         try req.wait();
@@ -306,9 +336,6 @@ const Event = struct {
         const url = try std.fmt.allocPrint(self.allocator, "{s}/invocation/{s}/error", .{ self.uri, self.request_id });
         defer self.allocator.free(url);
         const uri = try std.Uri.parse(url);
-        var headers = std.http.Headers.init(self.allocator);
-        defer headers.deinit();
-        try headers.append("Lambda-Runtime-Function-Error-Type", "Runtime.UnknownReason");
         const body = if (trace) |_|
             // fixme: allocPrint hangs when printing trace
             try std.fmt.allocPrint(self.allocator,
@@ -328,10 +355,20 @@ const Event = struct {
             , .{@errorName(caught)});
         defer self.allocator.free(body);
         log.debug("sending error report", .{});
-        var req = try self.client.request(.POST, uri, headers, .{});
+        // same as std client.fetch(...) default server_header_buffer
+        var server_header_buffer: [16 * 1024]u8 = undefined;
+        var req = try self.client.open(.POST, uri, .{
+            .server_header_buffer = &server_header_buffer,
+            .extra_headers = &[_]std.http.Header{
+                .{
+                    .name = "Lambda-Runtime-Function-Error-Type",
+                    .value = "Runtime.UnknownReason",
+                },
+            },
+        });
         defer req.deinit();
         req.transfer_encoding = .{ .content_length = body.len };
-        try req.start();
+        try req.send();
         try req.writeAll(body);
         try req.finish();
         try req.wait();
@@ -357,7 +394,7 @@ test "Events iterator" {
     defer runtime.deinit();
     var events = try runtime.events();
     defer events.deinit();
-    try testing.expectEqualStrings("/2018-06-01/runtime/invocation/next", events.next_uri.uri.path);
+    try testing.expectEqualStrings("/2018-06-01/runtime/invocation/next", events.next_uri.uri.path.percent_encoded);
 }
 
 test "Event structure" {
