@@ -63,7 +63,7 @@ Create a `build.zig.zon` file to declare a dependency
 
 > .zon short for "zig object notation" files are essentially zig structs. `build.zig.zon` is zigs native package manager convention for where to declare dependencies
 
-```zig
+```diff
 .{
     .name = "my-first-zig-lambda",
     .version = "0.1.0",
@@ -88,7 +88,7 @@ This library targets the provided lambda runtime, prefer `provided.al2023` the l
 
 To produce one of these, add the following in your `build.zig` file
 
-```zig
+```diff
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
