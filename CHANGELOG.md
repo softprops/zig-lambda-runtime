@@ -1,3 +1,7 @@
+# 0.2.1
+
+Internal refactor to make better use of zig 0.12.0 http upgrades
+
 # 0.2.0
 
 Upgrade to zig 0.12.0, current stable

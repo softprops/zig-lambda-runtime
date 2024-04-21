@@ -306,28 +306,16 @@ const Event = struct {
     fn response(self: *Self, payload: []const u8) !void {
         const url = try std.fmt.allocPrint(self.allocator, "{s}/invocation/{s}/response", .{ self.uri, self.request_id });
         defer self.allocator.free(url);
-        const uri = try std.Uri.parse(url);
-        const body = try std.fmt.allocPrint(
-            self.allocator,
-            "{s}",
-            .{payload},
-        );
+        const body = try self.allocator.dupe(u8, payload);
         defer self.allocator.free(body);
         log.debug("sending response", .{});
         // fixme. self.client segfaults on every other success. we really shouldn't need a new client on every response
         var client = std.http.Client{ .allocator = self.allocator };
         defer client.deinit();
-        // same as std client.fetch(...) default server_header_buffer
-        var server_header_buffer: [16 * 1024]u8 = undefined;
-        var req = try client.open(.POST, uri, .{
-            .server_header_buffer = &server_header_buffer,
+        _ = try client.fetch(.{
+            .location = .{ .url = url },
+            .payload = body,
         });
-        defer req.deinit();
-        req.transfer_encoding = .{ .content_length = body.len };
-        try req.send();
-        try req.writeAll(body);
-        try req.finish();
-        try req.wait();
         log.debug("response complete", .{});
     }
 
@@ -335,7 +323,6 @@ const Event = struct {
     fn err(self: *Self, trace: ?*std.builtin.StackTrace, caught: anytype) !void {
         const url = try std.fmt.allocPrint(self.allocator, "{s}/invocation/{s}/error", .{ self.uri, self.request_id });
         defer self.allocator.free(url);
-        const uri = try std.Uri.parse(url);
         const body = if (trace) |_|
             // fixme: allocPrint hangs when printing trace
             try std.fmt.allocPrint(self.allocator,
@@ -355,10 +342,9 @@ const Event = struct {
             , .{@errorName(caught)});
         defer self.allocator.free(body);
         log.debug("sending error report", .{});
-        // same as std client.fetch(...) default server_header_buffer
-        var server_header_buffer: [16 * 1024]u8 = undefined;
-        var req = try self.client.open(.POST, uri, .{
-            .server_header_buffer = &server_header_buffer,
+        _ = try self.client.fetch(.{
+            .location = .{ .url = url },
+            .payload = body,
             .extra_headers = &[_]std.http.Header{
                 .{
                     .name = "Lambda-Runtime-Function-Error-Type",
@@ -366,12 +352,6 @@ const Event = struct {
                 },
             },
         });
-        defer req.deinit();
-        req.transfer_encoding = .{ .content_length = body.len };
-        try req.send();
-        try req.writeAll(body);
-        try req.finish();
-        try req.wait();
         log.debug("error report complete", .{});
     }
 };
