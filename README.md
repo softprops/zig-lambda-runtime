@@ -73,14 +73,14 @@ Create a `build.zig.zon` file to declare a dependency
 +            // 👇 uri to download
 +            .url = "https://github.com/softprops/zig-lambda-runtime/archive/refs/tags/v0.2.0.tar.gz",
 +            // 👇 hash verification
-+            .hash = "{current-hash}",
++            .hash = "12202c21b4111b1b549508847b0de394f2188d16560287e532441457314d7c0671fa",
 +        },
     },
     .paths = .{""},
 }
 ```
 
-> the hash below may vary. you can also depend any tag with `https://github.com/softprops/zig-lambda-runtime/archive/refs/tags/v{version}.tar.gz` or current main with `https://github.com/softprops/zig-lambda-runtime/archive/refs/heads/main/main.tar.gz`. to resolve a hash omit it and let zig tell you the expected value.
+> the hash below may vary. you can also depend any tag with `https://github.com/softprops/zig-lambda-runtime/archive/refs/tags/v{version}.tar.gz` or current main with `https://github.com/softprops/zig-lambda-runtime/archive/refs/heads/main/main.tar.gz`. to resolve a hash, omit it and let zig tell you the expected value.
 
 ## 🔧 building
 
