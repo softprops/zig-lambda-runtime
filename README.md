@@ -95,11 +95,11 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
 
     const optimize = b.standardOptimizeOption(.{});
- +   // 👇 de-reference lambda dep from build.zig.zon
- +    const lambda = b.dependency("lambda", .{
- +       .target = target,
- +       .optimize = optimize,
- +   }).module("lambda");
++   // 👇 de-reference lambda dep from build.zig.zon
++    const lambda = b.dependency("lambda", .{
++       .target = target,
++       .optimize = optimize,
++   }).module("lambda");
     // 👇 create an execuable named `bootstrap`. the name `bootstrap` is important
     var exe = b.addExecutable(.{
         .name = "bootstrap",
@@ -107,8 +107,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
- +   // 👇 add the lambda module to executable
- +   exe.addModule("lambda", lambda);
++   // 👇 add the lambda module to executable
++   exe.addModule("lambda", lambda);
 
     b.installArtifact(exe);
 }
