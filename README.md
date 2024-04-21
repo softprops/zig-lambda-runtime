@@ -76,6 +76,7 @@ Create a `build.zig.zon` file to declare a dependency
 +            .hash = "12202c21b4111b1b549508847b0de394f2188d16560287e532441457314d7c0671fa",
 +        },
     },
+    .minimum_zig_version = "0.12.0",
     .paths = .{""},
 }
 ```
